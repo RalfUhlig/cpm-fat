@@ -35,6 +35,17 @@ Output in `build/`:
 
 During the build, `core.asm` checks the size of the CORE and issues a warning (`.WARNING`) if it exceeds 3072 bytes.
 
+## Programming the EEPROM
+
+The boot loader, monitor and Tiny BASIC (`build/cpm.hex`) go into the EEPROM, an Atmel AT28C256 (DIP28). With a TL866II+ or another programmer supported by [minipro](https://gitlab.com/DavidGriffith/minipro):
+
+```sh
+make eeprom                     # builds cpm.hex if necessary, then writes and verifies it
+make eeprom EEPROM=<type>       # a different chip type, as listed by: minipro -l
+```
+
+This runs `minipro -p AT28C256 -u -w build/cpm.hex`. minipro finds the programmer on USB by itself, but the chip type must be given. `-u` disables the chip's software data protection first, in case it was enabled before. After writing, minipro verifies the chip against the file.
+
 ## CP/M programs in `utils/`
 
 `utils/` contains stand-alone CP/M programs (`ORG 100H`) that do not include any of the system sources. `make` builds them as well; `make utils` builds only them:

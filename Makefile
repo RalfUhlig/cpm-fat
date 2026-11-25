@@ -3,6 +3,7 @@
 #   sudo apt install pasmo      # Debian/Ubuntu, version 0.5.3 is known to work
 #   make                        # results go to build/
 #   make PASMO=/path/to/pasmo   # use a pasmo binary that is not on the PATH
+#   make eeprom                 # write build/cpm.hex to the EEPROM with minipro
 #
 # Results:
 #   build/cpm.hex     boot loader + monitor + Tiny BASIC for the EEPROM (Intel HEX)
@@ -13,6 +14,11 @@
 #                     SD.COM CHK16550.COM
 
 PASMO ?= pasmo
+# Programming the EEPROM (an Atmel AT28C256 in DIP28) with a TL866II+ or
+# similar programmer. minipro finds the programmer on USB by itself; the
+# chip type must be given.
+MINIPRO ?= minipro
+EEPROM  ?= AT28C256
 OUT   := build
 DISK  := $(OUT)/disk/CPM
 DISKA := $(DISK)/DISKS/A
@@ -28,7 +34,7 @@ CFGS := $(OUT)/cpm.cfg $(OUT)/uart.cfg
 # utils/mload.asm is 8080 code that Pasmo cannot assemble; it is not built.
 UTILS := $(OUT)/sd.com $(OUT)/chk16550.com
 
-.PHONY: all disk utils clean
+.PHONY: all disk utils eeprom clean
 
 all: $(OUT)/cpm.hex $(BINS) $(CFGS) disk utils
 
@@ -76,6 +82,11 @@ utils: $(UTILS)
 	for f in $(notdir $(UTILS)); do \
 	    cp $(OUT)/$$f $(DISKA)/$$(echo $$f | tr a-z A-Z); \
 	done
+
+# Write the boot loader / monitor to the EEPROM, then verify it (minipro's default).
+# -u disables the software data protection first, in case it was enabled before.
+eeprom: $(OUT)/cpm.hex
+	$(MINIPRO) -p $(EEPROM) -u -w $<
 
 clean:
 	rm -rf $(OUT)
