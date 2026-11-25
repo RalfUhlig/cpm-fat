@@ -17,3 +17,12 @@ These should all be assembled into .BIN files and put into the /CPM directory or
 Also, to get the system started, there is a boot loader called CPM.ASM. This should be assembled to CPM.HEX and put in the EEPROM.
 
 The full content of the USB Drive is contained in "releases/master disk.zip" in case you ever need it.
+
+## Building
+
+With Pasmo installed, run `make` in this directory. It assembles everything into `build/`:
+
+* `build/cpm.hex` - the boot loader for the EEPROM. `make eeprom` writes it to the EEPROM with minipro (TL866II+ or similar).
+* `build/disk/CPM/` - the files for the /CPM directory of the USB Drive, ready to copy.
+
+See [BUILD.md](BUILD.md) for details, including the changes to the CH376 driver. Background on the CH376 module and large USB flash drives is in [docs/ch376-usb-flash-drives.md](docs/ch376-usb-flash-drives.md).
