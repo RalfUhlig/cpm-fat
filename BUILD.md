@@ -95,4 +95,16 @@ Unchanged and still byte-identical to `releases/cpm v2.2 rel 1.10.zip`: `bios.bi
 
 ### Testing on hardware
 
-The changes have been assembled and statically checked, but have **not yet been tested on real hardware**. Please first check with the known 120 MB stick that everything works as before: booting, `DIR`, loading and saving files, `REN`, Tiny BASIC `LOAD`/`SAVE`. Then test with the large sticks. If `[USB INT TIMEOUT]` appears, a command is not producing an interrupt; in that case, please report during which action it occurred.
+Tested on 2026-11-25 on a Z80 Playground (10 MHz) with no error messages:
+
+| USB stick | Layout | CH376 module (start-up message) | Tests |
+| --- | --- | --- | --- |
+| 960 MB | MBR, one partition of type 0x0E, FAT16 | v3 | full |
+| 8 GB | MBR, one partition of type 0x0C, FAT32 | v3, v2 | full |
+| 8 GB | as above | v1 | quick |
+
+Full tests: booting, `DIR`, `SD`, creating a file with `PIP TEST.TXT=CON:`, `TYPE`, `SAVE`, copying a 14 KB file to drive B: with `PIP B:=SARGON.COM[V]`, running it from B:, `REN`, `ERA`, and in Tiny BASIC `SAVE`, `LOAD`, `DIR` and `ERASE`. Quick tests: booting, `DIR`, `PIP ...[V]` and `ERA`.
+
+For comparison, the 8 GB stick also works with the original driver (the CORE from tag `upstream-final` and an EEPROM programmed in 2021), including several cold starts. The fixed driver is therefore not needed to make large sticks work, but it handles the CH376 as the datasheet describes and reports errors instead of ignoring them. See [docs/ch376-usb-flash-drives.md](docs/ch376-usb-flash-drives.md) for the conclusions.
+
+If `[USB INT TIMEOUT]` appears, a command is not producing an interrupt; in that case, please report during which action it occurred.
