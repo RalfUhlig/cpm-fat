@@ -2,7 +2,7 @@
 
 ## Assembler: Pasmo
 
-The source code is written for **Pasmo**. This is evident from Pasmo-specific directives such as `.WARNING`/`.ERROR` inside `IF` blocks, the `MACRO` syntax in `tiny-basic.asm`, and the note "Use PASMO" in that file. Pasmo 0.5.3 (Ubuntu package) assembles the source code into `core.bin`, `bios.bin`, `bdos.bin` and `ccp.bin`, all **byte-identical** to the files checked in to the project directory; `z80ccp.bin` is byte-identical to the one in `cpm v2.2 rel 1.10.zip`. `cpm.hex` has the same content as the checked-in file, but uses CRLF line endings (Intel HEX, 16-byte records).
+The source code is written for **Pasmo**. This is evident from Pasmo-specific directives such as `.WARNING`/`.ERROR` inside `IF` blocks, the `MACRO` syntax in `tiny-basic.asm`, and the note "Use PASMO" in that file. Pasmo 0.5.3 (Ubuntu package) assembles the source code into `core.bin`, `bios.bin`, `bdos.bin`, `ccp.bin` and `z80ccp.bin`, all **byte-identical** to the files in `cpm v2.2 rel 1.10.zip`. `cpm.hex` (Intel HEX, 16-byte records, CRLF) differs from the one in that release, because the monitor has changed since then.
 
 Installation:
 
