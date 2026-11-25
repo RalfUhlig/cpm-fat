@@ -8,10 +8,14 @@
 #   build/cpm.hex     boot loader + monitor + Tiny BASIC for the EEPROM (Intel HEX)
 #   build/disk/CPM/   files for the /CPM folder of the USB stick:
 #                     CORE.BIN BIOS.BIN BDOS.BIN CCP.BIN Z80CCP.BIN CPM.CFG UART.CFG
+#   build/disk/CPM/DISKS/A/
+#                     CP/M programs from utils/ for drive A: (make utils):
+#                     SD.COM CHK16550.COM
 
 PASMO ?= pasmo
 OUT   := build
 DISK  := $(OUT)/disk/CPM
+DISKA := $(DISK)/DISKS/A
 
 # Every module includes several of the other files, so rebuild on any change.
 SOURCES := $(wildcard *.asm *.ASM)
@@ -19,9 +23,14 @@ SOURCES := $(wildcard *.asm *.ASM)
 BINS := $(OUT)/core.bin $(OUT)/bios.bin $(OUT)/bdos.bin $(OUT)/ccp.bin $(OUT)/z80ccp.bin
 CFGS := $(OUT)/cpm.cfg $(OUT)/uart.cfg
 
-.PHONY: all disk clean
+# Stand-alone CP/M programs (ORG 100H) in utils/. They include nothing from the
+# system sources above, so they only depend on their own source file.
+# utils/mload.asm is 8080 code that Pasmo cannot assemble; it is not built.
+UTILS := $(OUT)/sd.com $(OUT)/chk16550.com
 
-all: $(OUT)/cpm.hex $(BINS) $(CFGS) disk
+.PHONY: all disk utils clean
+
+all: $(OUT)/cpm.hex $(BINS) $(CFGS) disk utils
 
 $(OUT):
 	mkdir -p $@
@@ -56,6 +65,16 @@ disk: $(BINS) $(CFGS)
 	mkdir -p $(DISK)
 	for f in $(notdir $(BINS) $(CFGS)); do \
 	    cp $(OUT)/$$f $(DISK)/$$(echo $$f | tr a-z A-Z); \
+	done
+
+$(OUT)/%.com: utils/%.asm | $(OUT)
+	$(PASMO) $< $@
+
+# The programs go to drive A: on the USB stick, with the 8.3 names in upper case.
+utils: $(UTILS)
+	mkdir -p $(DISKA)
+	for f in $(notdir $(UTILS)); do \
+	    cp $(OUT)/$$f $(DISKA)/$$(echo $$f | tr a-z A-Z); \
 	done
 
 clean:

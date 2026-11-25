@@ -30,5 +30,19 @@ Output in `build/`:
 | `core.bin`, `bios.bin`, `bdos.bin`, `ccp.bin`, `z80ccp.bin` | CP/M components, loaded from the USB stick |
 | `cpm.cfg`, `uart.cfg` | Configuration; hand-written, sources are in `cfg/` (taken from `releases/cpm v2.2 rel 1.10.zip`) |
 | `disk/CPM/` | All files for the `/CPM` folder on the USB stick, with upper-case names |
+| `sd.com`, `chk16550.com` | CP/M programs from `utils/` |
+| `disk/CPM/DISKS/A/` | The CP/M programs for drive A: on the USB stick, with upper-case names |
 
 During the build, `core.asm` checks the size of the CORE and issues a warning (`.WARNING`) if it exceeds 3072 bytes.
+
+## CP/M programs in `utils/`
+
+`utils/` contains stand-alone CP/M programs (`ORG 100H`) that do not include any of the system sources. `make` builds them as well; `make utils` builds only them:
+
+| Source | Program |
+| --- | --- |
+| `sd.asm` | `SD.COM`, Super Directory: sorted directory listing with file sizes |
+| `chk16550.asm` | `CHK16550.COM`, checks which type of 16C550 UART is fitted |
+| `mload.asm` | Multi-file HEX load utility; 8080 code that Pasmo cannot assemble, so it is not built |
+
+`SD.COM` and `CHK16550.COM` are byte-identical to the files in `releases/master disk.zip` (`CPM/DISKS/A/`).

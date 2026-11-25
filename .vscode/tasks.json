@@ -42,10 +42,10 @@
             }
         },
         {
-            "label": "SD",
+            "label": "UTILS",
             "type": "process",
-            "command": "pasmo",
-            "args": ["--bin", "SD.asm", "SD.com"],
+            "command": "make",
+            "args": ["utils"],
             "problemMatcher": [],
             "group": {
                 "kind": "build",
@@ -210,25 +210,6 @@
                 "panel": "shared",
                 "showReuseMessage": true,
                 "clear": true
-            }
-        },
-        {
-            "label": "CHK16550",
-            "type": "process",
-            "command": "pasmo",
-            "args": ["--bin", "chk16550.asm", "chk16550.com"],
-            "problemMatcher": [],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared",
-                "showReuseMessage": true,
-                "clear": true 
             }
         },
         {
