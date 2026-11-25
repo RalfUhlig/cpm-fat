@@ -44,7 +44,7 @@ make eeprom                     # builds cpm.hex if necessary, then writes and v
 make eeprom EEPROM=<type>       # a different chip type, as listed by: minipro -l
 ```
 
-This runs `minipro -p AT28C256 -u -w build/cpm.hex`. minipro finds the programmer on USB by itself, but the chip type must be given. `-u` disables the chip's software data protection first, in case it was enabled before. After writing, minipro verifies the chip against the file.
+This runs `minipro -p AT28C256 -u -w build/cpm.hex`. minipro finds the programmer on USB by itself, but the chip type must be given. minipro erases the chip before writing, so it does not need to be empty. `-u` disables the chip's software data protection first, in case it was enabled before; it is not enabled again afterwards (that would need `-P`). After writing, minipro verifies the chip against the file. With minipro 0.7.3, the whole run takes less than 10 s.
 
 ## CP/M programs in `utils/`
 
