@@ -27,6 +27,7 @@ Output in `build/`:
 | --- | --- |
 | `cpm.hex` | Boot loader, monitor and Tiny BASIC for the EEPROM (Intel HEX, starting at address 0000H) |
 | `cpm.bin` | The same as a raw binary file, for programmers that require one |
+| `cpm.symbols` | Symbol table of `cpm.hex` (label and address), for debugging |
 | `core.bin`, `bios.bin`, `bdos.bin`, `ccp.bin`, `z80ccp.bin` | CP/M components, loaded from the USB stick |
 | `cpm.cfg`, `uart.cfg` | Configuration; hand-written, sources are in `cfg/` (taken from `releases/cpm v2.2 rel 1.10.zip`) |
 | `disk/CPM/` | All files for the `/CPM` folder on the USB stick, with upper-case names |

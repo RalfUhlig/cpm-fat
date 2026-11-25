@@ -7,6 +7,7 @@
 #
 # Results:
 #   build/cpm.hex     boot loader + monitor + Tiny BASIC for the EEPROM (Intel HEX)
+#   build/cpm.symbols its symbol table, for debugging
 #   build/disk/CPM/   files for the /CPM folder of the USB stick:
 #                     CORE.BIN BIOS.BIN BDOS.BIN CCP.BIN Z80CCP.BIN CPM.CFG UART.CFG
 #   build/disk/CPM/DISKS/A/
@@ -42,9 +43,10 @@ $(OUT):
 	mkdir -p $@
 
 # Boot loader / monitor for the EEPROM, as Intel HEX.
-# A plain binary image is built as well, for EEPROM programmers that want one.
+# A plain binary image is built as well, for EEPROM programmers that want one,
+# and the symbol table (label = address), which helps when debugging.
 $(OUT)/cpm.hex: cpm.asm $(SOURCES) | $(OUT)
-	$(PASMO) --hex cpm.asm $@
+	$(PASMO) --hex cpm.asm $@ $(OUT)/cpm.symbols
 	$(PASMO) cpm.asm $(OUT)/cpm.bin
 
 $(OUT)/core.bin: core.asm $(SOURCES) | $(OUT)
