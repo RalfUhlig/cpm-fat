@@ -60,7 +60,7 @@ This runs `minipro -p AT28C256 -u -w build/cpm.hex`. minipro finds the programme
 
 ## Changes to the CH376 driver
 
-Compared with the upstream code (tag `upstream-final`). The timings below apply to the Z80 Playground's 10 MHz CPU clock; the pause routines are plain delay loops, so they scale with the clock.
+Compared with the upstream code (tag `upstream-final`). The background, i.e. why large USB flash drives failed and why the driver was fixed rather than the module replaced, is described in [docs/ch376-usb-flash-drives.md](docs/ch376-usb-flash-drives.md). The timings below apply to the Z80 Playground's 10 MHz CPU clock; the pause routines are plain delay loops, so they scale with the clock.
 
 `memorystick_low_level.asm`:
 
