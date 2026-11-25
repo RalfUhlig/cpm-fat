@@ -16,4 +16,4 @@ These should all be assembled into .BIN files and put into the /CPM directory or
 
 Also, to get the system started, there is a boot loader called CPM.ASM. This should be assembled to CPM.HEX and put in the EEPROM.
 
-The full content of the USB Drive is contained in "master disk.zip" in case you ever need it.
+The full content of the USB Drive is contained in "releases/master disk.zip" in case you ever need it.
