@@ -231,9 +231,7 @@ load_file_found:
     ld a, 255                           ; Yes, all!
     call send_data_byte
 
-    ld a, GET_STATUS
-    call send_command_byte
-    call read_data_byte
+    call read_status_byte
     pop hl                              ; Get back the target address
 load_loop1:
     cp USB_INT_DISK_READ
@@ -250,9 +248,7 @@ load_loop1:
     call disk_off
     ld a, BYTE_RD_GO
     call send_command_byte
-    ld a, GET_STATUS
-    call send_command_byte
-    call read_data_byte
+    call read_status_byte
     pop hl
     jp load_loop1
 load_finished:
@@ -340,7 +336,7 @@ dir_info_write1:
 
     ld a, DIR_INFO_SAVE
     call send_command_byte
-    call read_data_byte
+    call read_status_byte               ; DIR_INFO_SAVE ends with an interrupt; read and clear it
     ;call report_on_status
     ret
 

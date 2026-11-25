@@ -2,17 +2,47 @@
 ;--------------------;
 ; LOW LEVEL ROUTINES ;
 ;--------------------;
+;
+; Driver for the CH376S in 8-bit parallel mode.
+;
+; Protocol notes (CH376DS1.PDF, chapters 5 and 6.2):
+; - Reading the command port returns the interface status:
+;     bit 7 = interrupt flag, ACTIVE LOW (same as the INT# pin)
+;     bit 4 = busy flag, active high
+; - Commands $30..$40 (DISK_CONNECT, DISK_MOUNT, FILE_OPEN, BYTE_READ, ...)
+;   take time. The CH376 signals their end with an interrupt. GET_STATUS
+;   then returns the result and clears the interrupt. read_status_byte
+;   therefore waits for the interrupt before it sends GET_STATUS.
+; - Some USB sticks only answer DISK_MOUNT with USB_INT_SUCCESS after
+;   several attempts (datasheet 5.17), so mount_disk retries.
+
+PARA_STATE_INTB     equ %10000000       ; Interface status: 0 = interrupt pending
+CMD_RET_SUCCESS     equ $51             ; Result byte of SET_USB_MODE
+
+; Timeouts and retries. The pause routines are plain delay loops, so the
+; real times depend on the CPU clock (long_pause is about 0.16 s at the
+; Z80 Playground's 10 MHz, 0.1 s at 16 MHz and 0.2 s at 8 MHz).
+CH376_INT_TIMEOUT   equ 16              ; x 65536 status polls, about 5 s at 10 MHz (3 s at 16 MHz, 7 s at 8 MHz)
+CH376_SETUP_TRIES   equ 3               ; Complete reset/connect/mount cycles at start-up
+CH376_CONNECT_TRIES equ 10              ; DISK_CONNECT attempts, one long_pause apart
+CH376_MOUNT_TRIES   equ 25              ; DISK_MOUNT attempts, one long_pause apart
 
 configure_memorystick:
-    ld b, 5                                 ; Have 5 attempts at configuring the module before giving up
+    ; Resets the CH376, switches to USB host mode, waits for a disk and mounts it.
+    ; Returns Z if the disk is mounted, NZ otherwise.
+    ld b, CH376_SETUP_TRIES
 configure_memorystick1:
     push bc
     call connect_to_usb_drive
     jr nz, failed_to_setup
     call connect_to_disk
+    jr nz, failed_to_setup
+    call long_pause                         ; Give the stick time to start up before mounting
+    call long_pause
     call mount_disk
+    jr nz, failed_to_setup
     pop bc
-    ret
+    ret                                     ; Z = success
 failed_to_setup:
     call long_pause
     call long_pause
@@ -22,6 +52,19 @@ failed_to_setup:
     djnz configure_memorystick1
     call message
     db 'CH376S error.',13,10,0
+    or 1                                    ; Clear zero flag for failure
+    ret
+
+report_status_error:
+    ; Prints the status in A as hex, followed by a newline.
+    ; Returns A unchanged with the zero flag cleared. Destroys B.
+    push af
+    call show_a_as_hex
+    call newline
+    pop af
+    ld b, a
+    or 1                                    ; Clear zero flag
+    ld a, b
     ret
 
 ;----------------------------------------------------------------
@@ -65,37 +108,91 @@ get_module_version:
 
 ;-----------------------------------------------------------------
 set_usb_host_mode:
+    ; Switches to USB host mode 6 (enabled, SOF generated automatically).
+    ; The CH376 answers with CMD_RET_SUCCESS on the data port (datasheet 5.9).
+    ; Whether a disk is connected is checked later by connect_to_disk.
+    ; Returns Z if ok.
     ld a, SET_USB_MODE
     call send_command_byte
     ld a, 6
     call send_data_byte
-    call read_status_byte
-    cp USB_INT_CONNECT
+    call short_pause                        ; Mode switch takes about 10us
+    call read_data_byte
+    cp CMD_RET_SUCCESS
     ret z
     call message
-    db 'ERROR: No USB Disk?',13,10,0
-    ret
+    db 'ERROR setting USB host mode, result $',0
+    jp report_status_error
 
 ;-----------------------------------------------------------------
 connect_to_disk:
+    ; Checks with DISK_CONNECT whether a USB disk is connected, with retries.
+    ; Returns Z if connected, otherwise NZ and the last status in A.
+    ; Preserves DE and HL.
+    push de
+    push hl
+    ld b, CH376_CONNECT_TRIES
+connect_to_disk1:
+    push bc
+    call clear_pending_interrupt
     ld a, DISK_CONNECT
     call send_command_byte
-    ld a, GET_STATUS
     call read_status_byte
-    ret z
+    pop bc
+    cp USB_INT_SUCCESS
+    jr z, connect_to_disk_done
+    push af
+    push bc
+    call long_pause
+    pop bc
+    pop af
+    djnz connect_to_disk1
     call message
-    db 'ERROR connecting to USB Disk.',13,10,0
+    db 'ERROR connecting to USB Disk, status $',0
+    call report_status_error
+connect_to_disk_done:
+    pop hl
+    pop de
     ret
 
 ;-----------------------------------------------------------------
 mount_disk:
+    ; Initialises the disk and its file system with DISK_MOUNT. Many USB sticks
+    ; need several attempts after power-up, so this retries.
+    ; Returns Z if mounted, otherwise NZ and the last status in A.
+    ; Status codes: $1F = disk not ready / USB error, $82 = no disk,
+    ; $84 = sector size not 512, $92 = partition type not supported,
+    ; $A1 = no FAT12/16/32 file system (e.g. exFAT or NTFS).
+    ; Preserves DE and HL.
+    push de
+    push hl
+    ld b, CH376_MOUNT_TRIES
+mount_disk1:
+    push bc
+    call clear_pending_interrupt
     ld a, DISK_MOUNT
     call send_command_byte
-    ld a, GET_STATUS
     call read_status_byte
-    ret z
+    pop bc
+    cp USB_INT_SUCCESS
+    jr z, mount_disk_done
+    cp USB_INT_DISCONNECT                   ; Disk removed: retrying won't help
+    jr z, mount_disk_failed
+    cp $80                                  ; $80 and above: no disk or file system error,
+    jr nc, mount_disk_failed                ; retrying won't help either
+    push af
+    push bc
+    call long_pause
+    pop bc
+    pop af
+    djnz mount_disk1
+mount_disk_failed:
     call message
-    db 'ERROR mounting USB Disk.',13,10,0
+    db 'ERROR mounting USB Disk, status $',0
+    call report_status_error
+mount_disk_done:
+    pop hl
+    pop de
     ret
 
 ;-----------------------------------------------------------------
@@ -153,11 +250,15 @@ could_not_read_disk_sig:
     ret
 
 connect_to_usb_drive:
-    ; Connects us up to the USB Drive.
-    ; Returns Zero flag = true if we can connect ok.
-    call reset_ch376_module 
+    ; Resets the CH376 and switches it to USB host mode.
+    ; Returns Zero flag = true if ok.
+    call reset_ch376_module
     call set_usb_host_mode
-    cp USB_INT_CONNECT
+    ret nz
+    call long_pause                         ; Give a connected stick time to power up
+    call long_pause
+    call clear_pending_interrupt            ; Discard the USB_INT_CONNECT event, if any
+    cp a                                    ; Set zero flag for success
     ret
 
 create_file:
@@ -280,9 +381,7 @@ read_from_file_128:
     push hl
     ld a, BYTE_RD_GO
     call send_command_byte
-    ld a, GET_STATUS
-    call send_command_byte
-    call read_data_byte
+    call read_status_byte
     pop hl
     ; All done, so return ZERO for success
     cp a                                ; set zero flag for success
@@ -413,11 +512,51 @@ wait_til_not_busy2:
     db '[USB TIMEOUT]', 13, 10, 0
     ret
 
+wait_for_interrupt:
+    ; Waits until the CH376 signals the end of the running command with an
+    ; interrupt (bit 7 of the interface status goes low).
+    ; Returns Z if the interrupt arrived, NZ on timeout.
+    ; Destroys A and BC, preserves DE and HL.
+    push de
+    ld d, CH376_INT_TIMEOUT
+    ld bc, 0
+wait_for_interrupt1:
+    in a, (mem_stick_command_port)
+    and PARA_STATE_INTB
+    jr z, wait_for_interrupt2
+    dec bc
+    ld a, b
+    or c
+    jr nz, wait_for_interrupt1
+    dec d
+    jr nz, wait_for_interrupt1
+    call message
+    db '[USB INT TIMEOUT]', 13, 10, 0
+    or 1                                    ; Clear zero flag for timeout
+wait_for_interrupt2:
+    pop de
+    ret
+
 read_status_byte:
+    ; Waits for the end of the running command, then reads its interrupt
+    ; status with GET_STATUS, which also clears the interrupt.
+    ; Use this only after commands that generate an interrupt ($30..$40).
+    ; Returns the status in A. Preserves DE and HL.
+    call wait_for_interrupt
+read_status_byte_now:
     ld a, GET_STATUS
     call send_command_byte
     call read_data_byte
     ret
+
+clear_pending_interrupt:
+    ; If an interrupt is pending (e.g. a USB connect or disconnect event),
+    ; reads and discards its status so that the next command starts clean.
+    ; Preserves DE and HL.
+    in a, (mem_stick_command_port)
+    and PARA_STATE_INTB
+    ret nz                                  ; No interrupt pending
+    jr read_status_byte_now
 
 ; show_status:
 ;     call read_status_byte

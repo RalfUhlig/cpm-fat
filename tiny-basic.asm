@@ -499,9 +499,7 @@ load_can_do:
         ld a, 255                           ; Yes, all!
         call send_data_byte
 
-        ld a, GET_STATUS
-        call send_command_byte
-        call read_data_byte
+        call read_status_byte
         ld hl, TXTBGN                       ; Get back the target address
 tb_load_loop1:
         cp USB_INT_DISK_READ
@@ -518,9 +516,7 @@ tb_load_loop1:
         call disk_off
         ld a, BYTE_RD_GO
         call send_command_byte
-        ld a, GET_STATUS
-        call send_command_byte
-        call read_data_byte
+        call read_status_byte
         pop hl
         jp tb_load_loop1
 tb_load_finished:

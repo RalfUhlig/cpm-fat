@@ -128,6 +128,8 @@ disk_buffer equ DRIVE_NAME-36
 
 CORE_END equ $
 
-IF CORE_END-CORE_START>3072
-    .WARNING "The CORE is too big! 3072 bytes max!"
+; The CORE must end below the variables at the top of RAM
+; (ccp_name ... filename_buffer, the lowest is flow_control_value at $FFAE, see cpm.asm).
+IF CORE_END>$FFAE
+    .ERROR "The CORE is too big! It overlaps the variables at the top of RAM ($FFAE)."
 ENDIF

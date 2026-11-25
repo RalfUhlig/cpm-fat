@@ -463,10 +463,8 @@ burn_in_read_file:
 	ld a, 255                           ; Yes, all!
 	call send_data_byte
 
-	ld a, GET_STATUS
-	call send_command_byte
-	call read_data_byte
-	ld hl, burn_in_dump_area                       
+	call read_status_byte
+	ld hl, burn_in_dump_area
 burn_in_load_loop1:
 	cp USB_INT_DISK_READ
 	jr nz, burn_in_load_finished
@@ -482,9 +480,7 @@ burn_in_load_loop1:
 	call disk_off
 	ld a, BYTE_RD_GO
 	call send_command_byte
-	ld a, GET_STATUS
-	call send_command_byte
-	call read_data_byte
+	call read_status_byte
 	pop hl
 	jp burn_in_load_loop1
 burn_in_load_finished:
